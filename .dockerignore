@@ -1,0 +1,9 @@
+Do not send these to the build context
+
+server-data/
+server-files/
+.git/
+.github/
+README.md
+docker-compose.yml
+.env*

@@ -1,0 +1,54 @@
+---
+name: Code Quality (Linting)
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  shellcheck:
+    name: Lint - Shell Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Shellcheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        env:
+          SHELLCHECK_OPTS: -e SC1017 # Ignores carriage return issues
+
+  dockerlint:
+    name: Lint - Dockerfile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Hadolint (Docker Linter)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+
+  markdownlint:
+    name: Lint - Markdown Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Markdownlint
+        uses: DavidAnson/markdownlint-cli2-action@v17
+        with:
+          globs: "**/*.md"
+
+  yamllint:
+    name: Lint - YAML Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Yamllint
+        uses: ibiqlik/action-yamllint@v3

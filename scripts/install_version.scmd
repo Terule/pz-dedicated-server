@@ -1,0 +1,8 @@
+// Shutdown on a failed command
+@ShutdownOnFailedCommand 1
+@NoPromptForPassword 1
+force_install_dir /project-zomboid
+login anonymous
+// Uses the SERVER_BRANCH variable for specific versions like b42.15
+app_update 380870 -beta ${SERVER_BRANCH} validate
+quit

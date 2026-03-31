@@ -1,0 +1,7 @@
+// Shutdown on a failed command
+@ShutdownOnFailedCommand 1
+@NoPromptForPassword 1
+force_install_dir /project-zomboid
+login anonymous
+app_update 380870 validate
+quit

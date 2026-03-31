@@ -1,0 +1,17 @@
+---
+services:
+  pz-server:
+    image: ghcr.io/terule/pz-server-pro:latest
+    container_name: zomboid_pro
+    restart: unless-stopped
+    # Essential for graceful shutdown to finish saving
+    stop_grace_period: 45s
+    ports:
+      - "16261:16261/udp"
+      - "16262:16262/udp"
+      - "27015:27015/tcp"
+    env_file:
+      - .env
+    volumes:
+      - ./server-data:/project-zomboid-config
+      - ./server-files:/project-zomboid
