@@ -6,17 +6,19 @@ FROM steamcmd/steamcmd:ubuntu-22
 # Metadata Labels
 LABEL maintainer="Terule <https://github.com/Terule>" \
       org.opencontainers.image.authors="Terule" \
-      org.opencontainers.image.source="https://github.com/Terule/pz-server-pro" \
-      org.opencontainers.image.description="Professional Project Zomboid Docker Image using official SteamCMD" \
+      org.opencontainers.image.source="https://github.com/Terule/pz-dedicated-server" \
+      org.opencontainers.image.description="Project Zomboid Dedicated Server by Terule - High performance Docker image" \
       instagram="@aguiar_fael"
 
 # Install essential dependencies
-# Added lib32gcc-s1 and lib32stdc++6 which are required by PZ
+# Added ca-certificates and gzip to fix the rcon-cli download error
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gettext-base \
     procps \
     jq \
     curl \
+    ca-certificates \
+    gzip \
     netcat-openbsd \
     openjdk-17-jre-headless \
     lib32gcc-s1 \
@@ -25,7 +27,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Download rcon-cli directly
-RUN curl -sL https://github.com/gorcon/rcon-cli/releases/download/v0.10.3/rcon-cli-v0.10.3-amd64_linux.tar.gz | tar xzvf - -C /usr/local/bin --strip-components=1
+# Added --fail to curl to ensure it stops if the download fails
+RUN curl -fsSL https://github.com/gorcon/rcon-cli/releases/download/v0.10.3/rcon-cli-v0.10.3-amd64_linux.tar.gz | tar xzvf - -C /usr/local/bin --strip-components=1
 
 # Define base environment variables
 ENV CONFIG_DIR=/project-zomboid-config \
@@ -36,7 +39,7 @@ ENV CONFIG_DIR=/project-zomboid-config \
     RCON_PORT=27015 \
     STEAMCMD_PATH=/usr/bin/steamcmd
 
-# Create steam user (Official image doesn't provide it by default like cm2network)
+# Create steam user
 RUN useradd -m steam
 
 # Setup directories and copy scripts
@@ -51,7 +54,7 @@ RUN chmod +x /home/steam/server/entrypoint.sh && \
 
 WORKDIR /home/steam/server
 
-# Health Check: Verifies if the game process is still active
+# Health Check
 HEALTHCHECK --interval=1m --timeout=10s --start-period=5m --retries=3 \
     CMD pgrep "ProjectZomboid" > /dev/null || exit 1
 
