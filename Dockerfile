@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Download rcon-cli directly
 # Added --fail to curl to ensure it stops if the download fails
-RUN curl -fsSL https://github.com/gorcon/rcon-cli/releases/download/v0.10.3/rcon-cli-v0.10.3-amd64_linux.tar.gz | tar xzvf - -C /usr/local/bin --strip-components=1
+RUN curl -fsSL https://github.com/gorcon/rcon-cli/releases/download/v0.10.3/rcon-0.10.3-amd64_linux.tar.gz | tar xzvf - -C /usr/local/bin --strip-components=1
 
 # Define base environment variables
 ENV CONFIG_DIR=/project-zomboid-config \
