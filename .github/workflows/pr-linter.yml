@@ -1,0 +1,44 @@
+name: PR Quality Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  check-pr-body:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR Description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body;
+            if (!body || body.length < 50) {
+              core.setFailed("❌ The PR description is too short or empty! Please fill out the template properly to help us understand your changes.");
+            }
+            
+            if (body.includes("<!-- Describe your changes in detail. -->")) {
+              core.setFailed("❌ You forgot to remove or edit the placeholder text in the PR template!");
+            }
+
+  check-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR Title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Exige títulos como: "feat: add backups" ou "fix: rcon shutdown"
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
