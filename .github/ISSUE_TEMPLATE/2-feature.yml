@@ -1,0 +1,25 @@
+name: "💡 Feature Request"
+description: "Got a cool idea to survive longer? Suggest it here."
+title: "[FEATURE]: <short-description>"
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Is your feature request related to a problem?"
+      description: "Tell us what's missing or frustrating."
+      placeholder: "I'm struggling with backups..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: "Describe the solution you'd like"
+      description: "How should this feature work?"
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Alternatives considered"
+      description: "Did you try any other way or saw this in another image?"

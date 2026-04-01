@@ -1,0 +1,21 @@
+name: "❓ Help / Question"
+description: "Stuck with a mod or config? Ask the survivors."
+title: "[HELP]: "
+labels: ["help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: "Don't go alone, take this support thread. Ask away!"
+  - type: textarea
+    id: question
+    attributes:
+      label: "What's the struggle?"
+      description: "Tell us what’s going on. Trying to install Brita's and things went south?"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: "Relevant .env snippets"
+      description: "Paste parts of your .env here (HIDE YOUR PASSWORDS!)."
+      render: yaml

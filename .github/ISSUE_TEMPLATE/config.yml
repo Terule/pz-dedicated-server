@@ -1,0 +1,15 @@
+# This is the story of how your config was organized...
+blank_issues_enabled: false # Forces users to use your templates
+
+contact_links:
+  - name: "💬 Community Reddit Thread"
+    url: "https://www.reddit.com/r/projectzomboid/"
+    about: "Want to chat with the community or share your stories? Head over to Reddit!"
+
+  - name: "📦 Docker Hub Page"
+    url: "https://hub.docker.com/repository/docker/terule/pz-dedicated-server/general"
+    about: "Check out the official image page and tags on Docker Hub."
+
+  - name: "📸 Follow on Instagram"
+    url: "https://www.instagram.com/aguiar_fael"
+    about: "Keep up with the dev (Terule) on social media."

@@ -1,0 +1,58 @@
+name: "🐛 Bug Report"
+description: "Found a zombie in the code? Let us know."
+title: "[BUG]: <short-description>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! This is the story of how your config died... let's fix it.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: "What happened?"
+      description: "A clear and concise description of the error."
+      placeholder: "The container keeps restarting after I changed..."
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Steps to Reproduce"
+      description: "How can we find this bug ourselves?"
+      placeholder: |
+        1. Set MEMORY_XMX_GB to...
+        2. Run docker-compose up
+        3. See error in logs...
+    validations:
+      required: true
+  - type: dropdown
+    id: branch
+    attributes:
+      label: "Project Zomboid Branch"
+      description: "Which version are you running?"
+      options:
+        - "Stable (Build 41/Standard)"
+        - "Unstable (Build 42/Experimental)"
+    validations:
+      required: true
+  - type: input
+    id: docker-version
+    attributes:
+      label: "Docker & OS Version"
+      description: "Ex: Docker 24.0, Ubuntu 22.04"
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Container Logs"
+      description: "Please paste the output of 'docker logs zomboid_server' here."
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: "Before submitting"
+      options:
+        - label: "I have removed all passwords from my logs/.env snippets."
+          required: true
+        - label: "I have checked if there is already an open issue for this."
+          required: true
