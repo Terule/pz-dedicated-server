@@ -4,62 +4,87 @@ Professional, high-performance Docker image for Project Zomboid Dedicated Server
 
 Developed with 24/7 uptime in mind by **Terule**.
 
+> [!CAUTION]
+> **CRITICAL WARNING (Build 42 Versions):**
+> Saves created in Build 42.15 are **NOT compatible** with Build 42.16 and higher. Updating your server will result in map corruption or loss of progress.
+> To protect your save, if you use `SERVER_BRANCH=outdatedunstable`, automatic updates are **forcefully disabled** on startup.
+
+## ⚠️ Disclaimer
+
+**This is a community-driven project.** I (Terule) am the maintainer of this Docker image, but I am **not** a developer of Project Zomboid, nor am I affiliated with The Indie Stone.
+
+* **Docker/Config Issues:** If the container doesn't boot, memory isn't being allocated, or RCON fails, I'm here to help! Please open an issue.
+
+* **Game Bugs:** If the game crashes due to internal engine errors, item glitches, or map bugs, I cannot fix those. Please report them directly to the official Project Zomboid forums.
+
 ## Key Features
 
 * **Official Base**: Built on the official `steamcmd/steamcmd:ubuntu-22` image for maximum reliability.
+
 * **Graceful Shutdown**: Automatically executes RCON `save` and `quit` commands on container stop to prevent world corruption.
+
 * **Memory Patching**: Directly modifies `ProjectZomboid64.json` to ensure your RAM allocation (`-Xmx`) is actually applied.
-* **Smart Settings Patching**: Injects PVP, MaxPlayers, and Minimap settings via environment variables without wiping other manual changes made to the `.ini` file.
-* **Build 42 Ready**: Easy branch switching (Stable vs. Unstable) via environment variables.
-* **Permissions Support**: Full PUID/PGID support to match your host's filesystem permissions.
+
+* **Build 42 Ready**: Supports Stable, Latest Unstable (42.16+), and Outdated Unstable (42.15).
 
 ## Quick Start
 
+### Option A: Using Docker Compose (Recommended)
+
 1. **Clone this repository**:
+
    ```bash
    git clone [https://github.com/Terule/pz-dedicated-server.git](https://github.com/Terule/pz-dedicated-server.git)
    cd pz-dedicated-server
    ```
 
 2. **Configure environment**:
-   Copy `.env.example` to `.env` and fill in your desired passwords and settings.
+   Copy `.env.example` to `.env` and fill in your desired passwords.
+
    ```bash
    cp .env.example .env
    ```
 
 3. **Run the server**:
+
    ```bash
    docker-compose up -d
    ```
 
-## Modding Support 🛠️
+### Option B: Using Docker Run (Quick Start)
 
-To add mods to your server, you need to edit the configuration files generated after the first run:
+If you just want to pull and run the latest image directly:
 
-1. **Locate your config**: Go to `./server-data/Server/`.
-2. **Edit the `.ini` file**: Open `{SERVER_NAME}.ini` (e.g., `dedicated.ini`).
-3. **Add Workshop IDs**: Find the line `WorkshopItems=` and add the Steam Workshop IDs separated by semicolons.
-   * *Example:* `WorkshopItems=2292487282;1111111111`
-4. **Add Mod IDs**: Find the line `Mods=` and add the internal Mod IDs separated by semicolons.
-   * *Example:* `Mods=Brita;OtherMod`
-5. **Restart**: Restart the container with `docker-compose restart`. The server will automatically download the mods on startup.
-
-> **Note**: Workshop items are the packages from Steam, while Mods are the actual content IDs inside those packages. You usually need both.
+```bash
+docker run -d \
+  --name pz_server \
+  --restart unless-stopped \
+  -p 16261:16261/udp \
+  -p 16262:16262/udp \
+  -p 27015:27015/tcp \
+  -v "$(pwd)/server-data:/project-zomboid-config" \
+  -v "$(pwd)/server-files:/project-zomboid" \
+  -e ADMIN_PASSWORD="your_secure_password" \
+  -e RCON_PASSWORD="your_rcon_password" \
+  -e MEMORY_XMX_GB=8 \
+  terule/pz-dedicated-server:latest
+```
 
 ## Environment Variables
 
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `SERVER_NAME` | Name of your server profile | `dedicated` |
-| `MEMORY_XMX_GB` | RAM allocated to the server (GB) | `8` |
-| `SERVER_BRANCH` | Use `unstable` for Build 42, leave empty for Stable | (empty) |
-| `PVP` | Enable or disable player vs player | `true` |
-| `MAX_PLAYERS` | Maximum player slots | `32` |
-| `ALLOW_MINIMAP` | Allow players to use the minimap | `true` |
+| Variable | Description | Default | 
+| ----- | ----- | ----- | 
+| `SERVER_NAME` | Name of your server profile | `dedicated` | 
+| `MEMORY_XMX_GB` | RAM allocated to the server (GB) | `8` | 
+| `SERVER_BRANCH` | `unstable` (42.16+), `outdatedunstable` (42.15), or leave empty for Stable (B41) | (empty) | 
+| `UPDATE_ON_START` | Auto-update game files (Disabled if branch is `outdatedunstable`) | `true` | 
+| `PVP` | Enable or disable player vs player | `true` | 
+| `MAX_PLAYERS` | Maximum player slots | `32` | 
 
 ## Support & Credits
 
 * **Maintained by**: [Terule](https://github.com/Terule)
+
 * **Instagram**: [@aguiar_fael](https://www.instagram.com/aguiar_fael)
 
 ---

@@ -33,7 +33,8 @@ body:
       description: "Which version are you running?"
       options:
         - "Stable (Build 41/Standard)"
-        - "Unstable (Build 42/Experimental)"
+        - "Latest Unstable (Build 42.16+)"
+        - "Outdated Unstable (Build 42.15)"
     validations:
       required: true
   - type: input

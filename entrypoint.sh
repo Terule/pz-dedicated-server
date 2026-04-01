@@ -31,7 +31,14 @@ if [ -z "${ADMIN_PASSWORD}" ] || [ "${ADMIN_PASSWORD}" == "admin" ] || [ "${ADMI
     LogWarn "SECURITY WARNING: ADMIN_PASSWORD is weak or not set! Check your .env file."
 fi
 
-# --- 3. SteamCMD Update Logic ---
+# --- 3. SteamCMD Update Logic & Save Protection ---
+# Logic to prevent accidental updates from 42.15 to 42.16+
+if [ "$SERVER_BRANCH" == "outdatedunstable" ]; then
+    LogWarn "!!! OUTDATEDUNSTABLE (42.15) DETECTED !!!"
+    LogWarn "Automatic updates are DISABLED to protect your save from B42.16+ incompatibility."
+    UPDATE_ON_START="false"
+fi
+
 if [ "$UPDATE_ON_START" = "true" ] || [ ! -f "/project-zomboid/ProjectZomboid64" ]; then
     LogAction "Updating game files (Branch: ${SERVER_BRANCH:-Stable})..."
     if [ -n "${SERVER_BRANCH}" ]; then
@@ -39,7 +46,6 @@ if [ "$UPDATE_ON_START" = "true" ] || [ ! -f "/project-zomboid/ProjectZomboid64"
     else
         cp /home/steam/server/scripts/install.scmd /tmp/run.scmd
     fi
-    # Using STEAMCMD_PATH defined in Dockerfile
     su - steam -c "${STEAMCMD_PATH:-/usr/bin/steamcmd} +runscript /tmp/run.scmd"
 fi
 
