@@ -32,7 +32,6 @@ if [ -z "${ADMIN_PASSWORD}" ] || [ "${ADMIN_PASSWORD}" == "admin" ] || [ "${ADMI
 fi
 
 # --- 3. SteamCMD Update Logic & Save Protection ---
-# Logic to prevent accidental updates from 42.15 to 42.16+
 if [ "$SERVER_BRANCH" == "outdatedunstable" ]; then
     LogWarn "!!! OUTDATEDUNSTABLE (42.15) DETECTED !!!"
     LogWarn "Automatic updates are DISABLED to protect your save from B42.16+ incompatibility."
@@ -59,12 +58,15 @@ fi
 # --- 5. Essential Settings Patching (.ini) ---
 INI_FILE="$CONFIG_DIR/Server/${SERVER_NAME}.ini"
 if [ -f "$INI_FILE" ]; then
-    LogAction "Applying essential config patches (PVP, MaxPlayers, Minimap)"
-    sed -i "s/^PVP=.*/PVP=${PVP:-true}/" "$INI_FILE"
-    sed -i "s/^MaxPlayers=.*/MaxPlayers=${MAX_PLAYERS:-32}/" "$INI_FILE"
+    LogAction "Applying essential config patches (PVP, Access, Visibility)"
+    sed -i "s/^PVP=.*/PVP=${PVP:-false}/" "$INI_FILE"
+    sed -i "s/^MaxPlayers=.*/MaxPlayers=${MAX_PLAYERS:-10}/" "$INI_FILE"
     sed -i "s/^AllowMiniMap=.*/AllowMiniMap=${ALLOW_MINIMAP:-true}/" "$INI_FILE"
     sed -i "s/^RCONPassword=.*/RCONPassword=${RCON_PASSWORD}/" "$INI_FILE"
     sed -i "s/^RCONEnabled=.*/RCONEnabled=true/" "$INI_FILE"
+    # New Access & Visibility patches
+    sed -i "s/^Password=.*/Password=${SERVER_PASSWORD}/" "$INI_FILE"
+    sed -i "s/^Public=.*/Public=${PUBLIC:-false}/" "$INI_FILE"
 fi
 
 # --- 6. Graceful Shutdown (RCON Save & Quit) ---
@@ -82,8 +84,8 @@ trap 'term_handler' SIGTERM
 LogSuccess "Launching Project Zomboid Dedicated Server!"
 su - steam -c "/project-zomboid/ProjectZomboid64 -batchmode \
     -cachedir=$CONFIG_DIR \
-    -adminusername $ADMIN_USERNAME \
-    -adminpassword $ADMIN_PASSWORD \
+    -adminusername \"$ADMIN_USERNAME\" \
+    -adminpassword \"$ADMIN_PASSWORD\" \
     -port $DEFAULT_PORT \
     -servername $SERVER_NAME \
     $EXTRA_FLAGS" &
