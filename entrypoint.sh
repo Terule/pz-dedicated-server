@@ -109,18 +109,22 @@ trap 'term_handler' SIGTERM
 # --- 7. Server Execution ---
 LogSuccess "Starting Project Zomboid Dedicated Server!"
 
-# Fix for libsteam_api.so and ClassNotFound issues:
-# 1. Add game directory and linux64 to LD_LIBRARY_PATH
-# 2. Crucial: The working directory MUST be the game directory for the launcher to find .jar files
+# Prepare environment for the game
 export LD_LIBRARY_PATH="$GAME_DIR/linux64:$GAME_DIR:$LD_LIBRARY_PATH"
 
-# Run as 'steam' user, ensuring we are in the GAME_DIR and preserving the library path
-su steam -c "cd $GAME_DIR && export LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH\" && ./ProjectZomboid64 -batchmode \
-    -cachedir=$CONFIG_DIR \
-    -adminusername \"$ADMIN_USERNAME\" \
-    -adminpassword \"$ADMIN_PASSWORD\" \
+# Choose the best entry point: start-server.sh is preferred as it sets up its own classpath
+EXEC_BIN="./ProjectZomboid64"
+if [ -f "$GAME_DIR/start-server.sh" ]; then
+    EXEC_BIN="./start-server.sh"
+fi
+
+# Run as steam user, using single quotes for variables to prevent shell injection/breaking
+su steam -s /bin/bash -c "cd $GAME_DIR && export LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH\" && $EXEC_BIN -batchmode \
+    -cachedir='$CONFIG_DIR' \
+    -adminusername '$ADMIN_USERNAME' \
+    -adminpassword '$ADMIN_PASSWORD' \
     -port $INTERNAL_UDP_MAIN \
-    -servername $SERVER_NAME \
+    -servername '$SERVER_NAME' \
     $EXTRA_FLAGS" &
 
 killpid="$!"
