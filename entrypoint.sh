@@ -56,14 +56,14 @@ if [ "$UPDATE_ON_START" = "true" ] || [ ! -f "/project-zomboid/ProjectZomboid64"
     else
         cp /home/steam/server/scripts/install.scmd /tmp/run.scmd
     fi
-    su - steam -c "${STEAMCMD_PATH:-/usr/bin/steamcmd} +runscript /tmp/run.scmd"
+    su steam -c "${STEAMCMD_PATH:-/usr/bin/steamcmd} +runscript /tmp/run.scmd"
 fi
 
 # --- 4. Memory Management (JSON Patch) ---
 JSON_FILE="/project-zomboid/ProjectZomboid64.json"
 if [ -f "$JSON_FILE" ]; then
     LogAction "Applying memory patch to ${MEMORY_XMX_GB}GB"
-    su - steam -c "jq \".vmArgs |= map(if startswith(\\\"-Xmx\\\") then \\\"-Xmx${MEMORY_XMX_GB}G\\\" else . end)\" $JSON_FILE > $JSON_FILE.tmp && mv $JSON_FILE.tmp $JSON_FILE"
+    su steam -c "jq \".vmArgs |= map(if startswith(\\\"-Xmx\\\") then \\\"-Xmx${MEMORY_XMX_GB}G\\\" else . end)\" $JSON_FILE > $JSON_FILE.tmp && mv $JSON_FILE.tmp $JSON_FILE"
 fi
 
 # --- 5. Configuration Patching (.ini and SandboxVars.lua) ---
@@ -114,7 +114,8 @@ LogSuccess "Starting Project Zomboid Dedicated Server!"
 # 2. Crucial: The working directory MUST be the game directory for the launcher to find .jar files
 export LD_LIBRARY_PATH="$GAME_DIR/linux64:$GAME_DIR:$LD_LIBRARY_PATH"
 
-su - steam -c "cd $GAME_DIR && export LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH\" && ./ProjectZomboid64 -batchmode \
+# Run as 'steam' user, ensuring we are in the GAME_DIR and preserving the library path
+su steam -c "cd $GAME_DIR && export LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH\" && ./ProjectZomboid64 -batchmode \
     -cachedir=$CONFIG_DIR \
     -adminusername \"$ADMIN_USERNAME\" \
     -adminpassword \"$ADMIN_PASSWORD\" \
