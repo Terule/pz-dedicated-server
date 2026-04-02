@@ -11,7 +11,6 @@ LABEL maintainer="Terule <https://github.com/Terule>" \
       instagram="@aguiar_fael"
 
 # Install essential dependencies
-# Added ca-certificates and gzip to fix the rcon-cli download error
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gettext-base \
     procps \
@@ -27,13 +26,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Download rcon-cli directly
-# Added --fail to curl to ensure it stops if the download fails
-RUN curl -fsSL https://github.com/gorcon/rcon-cli/releases/download/v0.10.3/rcon-0.10.3-amd64_linux.tar.gz | tar xzvf - -C /usr/local/bin --strip-components=1
+RUN curl -fsSL https://github.com/gorcon/rcon-cli/releases/download/v0.10.3/rcon-cli-v0.10.3-amd64_linux.tar.gz | tar xzvf - -C /usr/local/bin --strip-components=1
 
 # Define base environment variables
 ENV CONFIG_DIR=/project-zomboid-config \
     GAME_DIR=/project-zomboid \
-    SERVER_NAME=pzserver \
+    SERVER_NAME=dedicated \
     MEMORY_XMX_GB=8 \
     UPDATE_ON_START=true \
     RCON_PORT=27015 \
@@ -41,6 +39,10 @@ ENV CONFIG_DIR=/project-zomboid-config \
 
 # Create steam user
 RUN useradd -m steam
+
+# Fix SteamCMD directories and symlinks to avoid verification loops
+RUN mkdir -p /home/steam/.steam/sdk64 /home/steam/.steam/sdk32 /home/steam/.steam/root && \
+    chown -R steam:steam /home/steam/.steam
 
 # Setup directories and copy scripts
 RUN mkdir -p /project-zomboid /project-zomboid-config /home/steam/server/scripts
