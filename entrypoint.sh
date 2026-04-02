@@ -109,11 +109,12 @@ trap 'term_handler' SIGTERM
 # --- 7. Server Execution ---
 LogSuccess "Starting Project Zomboid Dedicated Server!"
 
-# Fix for libsteam_api.so not found: 
-# We need to add the game directory and the linux64 subdirectory to LD_LIBRARY_PATH
+# Fix for libsteam_api.so and ClassNotFound issues:
+# 1. Add game directory and linux64 to LD_LIBRARY_PATH
+# 2. Crucial: The working directory MUST be the game directory for the launcher to find .jar files
 export LD_LIBRARY_PATH="$GAME_DIR/linux64:$GAME_DIR:$LD_LIBRARY_PATH"
 
-su - steam -c "export LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH\" && $GAME_DIR/ProjectZomboid64 -batchmode \
+su - steam -c "cd $GAME_DIR && export LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH\" && ./ProjectZomboid64 -batchmode \
     -cachedir=$CONFIG_DIR \
     -adminusername \"$ADMIN_USERNAME\" \
     -adminpassword \"$ADMIN_PASSWORD\" \
