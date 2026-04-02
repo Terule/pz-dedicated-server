@@ -33,7 +33,8 @@ if [ -n "${PUID}" ] && [ -n "${PGID}" ]; then
 fi
 
 # Ensure folders exist and belong to steam user before any operation
-mkdir -p /home/steam/.steam/sdk64 /home/steam/.steam/root "$CONFIG_DIR/Server" "$GAME_DIR"
+# We also create the Steam log directory to avoid SteamCMD initialization errors
+mkdir -p /home/steam/.steam/sdk64 /home/steam/.steam/root /home/steam/Steam/logs "$CONFIG_DIR/Server" "$GAME_DIR"
 chown -R steam:steam /home/steam/ /project-zomboid /project-zomboid-config
 
 # --- 2. Admin Security Check ---
@@ -58,21 +59,23 @@ if [ "$UPDATE_ON_START" = "true" ] || [ ! -f "/project-zomboid/ProjectZomboid64"
         cp /home/steam/server/scripts/install.scmd /tmp/run.scmd
     fi
 
-    # Retry logic increased to 10 attempts as requested
+    # Retry logic set to 10 attempts
     MAX_RETRIES=10
     RETRY_COUNT=0
     UPDATE_SUCCESS=false
 
     while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-        if su steam -c "${STEAMCMD_PATH:-/usr/bin/steamcmd} +runscript /tmp/run.scmd"; then
+        # Use su without '-' to preserve environment variables, but use -s /bin/bash for consistency
+        if su steam -s /bin/bash -c "${STEAMCMD_PATH:-/usr/bin/steamcmd} +runscript /tmp/run.scmd"; then
             UPDATE_SUCCESS=true
             LogSuccess "Game update successful!"
             break
         else
             RETRY_COUNT=$((RETRY_COUNT + 1))
-            LogWarn "Update failed. Retry attempt $RETRY_COUNT of $MAX_RETRIES..."
+            LogWarn "Update failed with state error (possibly 0x6). Retry attempt $RETRY_COUNT of $MAX_RETRIES..."
             if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                sleep 5
+                # Sleep a bit longer on each failure to allow Steam servers to recover
+                sleep $(( 5 * RETRY_COUNT ))
             fi
         fi
     done
@@ -91,7 +94,7 @@ fi
 JSON_FILE="/project-zomboid/ProjectZomboid64.json"
 if [ -f "$JSON_FILE" ]; then
     LogAction "Applying memory patch to ${MEMORY_XMX_GB}GB"
-    su steam -c "jq \".vmArgs |= map(if startswith(\\\"-Xmx\\\") then \\\"-Xmx${MEMORY_XMX_GB}G\\\" else . end)\" $JSON_FILE > $JSON_FILE.tmp && mv $JSON_FILE.tmp $JSON_FILE"
+    su steam -s /bin/bash -c "jq \".vmArgs |= map(if startswith(\\\"-Xmx\\\") then \\\"-Xmx${MEMORY_XMX_GB}G\\\" else . end)\" $JSON_FILE > $JSON_FILE.tmp && mv $JSON_FILE.tmp $JSON_FILE"
 fi
 
 # --- 5. Configuration Patching (.ini and SandboxVars.lua) ---
