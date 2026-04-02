@@ -1,4 +1,4 @@
-name: Publish Image to GHCR and Docker Hub
+name: Publish Image to GHCR
 
 on:
   push:

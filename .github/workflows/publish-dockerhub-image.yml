@@ -1,4 +1,4 @@
-name: Publish pz-dedicated-server Image to Docker Hub
+name: Publish Image to Docker Hub
 on:
   push:
     branches: [ "main" ]
