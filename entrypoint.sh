@@ -59,8 +59,10 @@ if [ "$UPDATE_ON_START" = "true" ] || [ ! -f "/project-zomboid/ProjectZomboid64"
         cp /home/steam/server/scripts/install.scmd /tmp/run.scmd
     fi
 
-    # Persistent retry logic to ensure server version matches client requirements
+    # Persistent retry logic with manifest deletion strategy
     RETRY_COUNT=0
+    MAX_INITIAL_RETRIES=10
+    
     while true; do
         # Use su without '-' to preserve environment variables, but use -s /bin/bash for consistency
         if su steam -s /bin/bash -c "${STEAMCMD_PATH:-/usr/bin/steamcmd} +runscript /tmp/run.scmd"; then
@@ -68,7 +70,16 @@ if [ "$UPDATE_ON_START" = "true" ] || [ ! -f "/project-zomboid/ProjectZomboid64"
             break
         else
             RETRY_COUNT=$((RETRY_COUNT + 1))
-            LogWarn "Update failed (Attempt $RETRY_COUNT). Retrying in 15 seconds to ensure version parity..."
+            LogWarn "Update failed (Attempt $RETRY_COUNT). Retrying in 15 seconds..."
+            
+            # If we hit 10 attempts, delete the app manifest to clear corrupted Steam state
+            if [ $RETRY_COUNT -eq $MAX_INITIAL_RETRIES ]; then
+                LogWarn "10 attempts failed. Deleting app manifest to force a fresh validation..."
+                # Search and delete the manifest in the game dir and steam user home
+                find /project-zomboid -name "appmanifest_380870.acf" -delete
+                find /home/steam -name "appmanifest_380870.acf" -delete
+            fi
+            
             # Sleep to avoid spamming Steam servers
             sleep 15
         fi
