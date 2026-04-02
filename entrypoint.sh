@@ -108,7 +108,12 @@ trap 'term_handler' SIGTERM
 
 # --- 7. Server Execution ---
 LogSuccess "Starting Project Zomboid Dedicated Server!"
-su - steam -c "/project-zomboid/ProjectZomboid64 -batchmode \
+
+# Fix for libsteam_api.so not found: 
+# We need to add the game directory and the linux64 subdirectory to LD_LIBRARY_PATH
+export LD_LIBRARY_PATH="$GAME_DIR/linux64:$GAME_DIR:$LD_LIBRARY_PATH"
+
+su - steam -c "export LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH\" && $GAME_DIR/ProjectZomboid64 -batchmode \
     -cachedir=$CONFIG_DIR \
     -adminusername \"$ADMIN_USERNAME\" \
     -adminpassword \"$ADMIN_PASSWORD\" \
