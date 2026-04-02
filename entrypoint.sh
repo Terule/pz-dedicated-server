@@ -12,6 +12,11 @@ LogSuccess() { printf "${GreenBold}%s${RESET}\n" "$1"; }
 LogWarn() { printf "${YellowBold}%s${RESET}\n" "$1"; }
 LogError() { printf "${RedBold}%s${RESET}\n" "$1"; }
 
+# --- Sincronização de Portas do Compose ---
+# Usamos as portas passadas pelo Compose ou os padrões do jogo
+DEFAULT_PORT=${PORT_UDP_MAIN:-16261}
+RCON_PORT=${PORT_TCP_RCON:-27015}
+
 # --- Exibir Branding do Projeto ---
 if [ -f "/home/steam/server/branding" ]; then
     cat /home/steam/server/branding
@@ -32,7 +37,6 @@ if [ -z "${ADMIN_PASSWORD}" ] || [ "${ADMIN_PASSWORD}" == "admin" ] || [ "${ADMI
 fi
 
 # --- 3. Lógica de Update e Proteção de Save ---
-# Impede atualização acidental da 42.15 para 42.16+
 if [ "$SERVER_BRANCH" == "outdatedunstable" ]; then
     LogWarn "!!! OUTDATEDUNSTABLE (42.15) DETECTADO !!!"
     LogWarn "Updates automáticos desativados para proteger a compatibilidade do seu save."
@@ -62,15 +66,15 @@ SANDBOX_FILE="$CONFIG_DIR/Server/${SERVER_NAME}_SandboxVars.lua"
 
 if [ -f "$INI_FILE" ]; then
     LogAction "Aplicando patches no arquivo .ini"
-    # Configurações base
     sed -i "s/^PVP=.*/PVP=${PVP:-false}/" "$INI_FILE"
     sed -i "s/^MaxPlayers=.*/MaxPlayers=${MAX_PLAYERS:-10}/" "$INI_FILE"
     sed -i "s/^RCONPassword=.*/RCONPassword=${RCON_PASSWORD}/" "$INI_FILE"
     sed -i "s/^RCONEnabled=.*/RCONEnabled=true/" "$INI_FILE"
     sed -i "s/^Password=.*/Password=${SERVER_PASSWORD}/" "$INI_FILE"
     sed -i "s/^Public=.*/Public=${PUBLIC:-false}/" "$INI_FILE"
+    sed -i "s/^DefaultPort=.*/DefaultPort=${DEFAULT_PORT}/" "$INI_FILE"
+    sed -i "s/^UDPPort=.*/UDPPort=${PORT_UDP_DIRECT:-16262}/" "$INI_FILE"
     
-    # Configurações de exibição e privacidade solicitadas
     sed -i "s/^MouseOverToSeeDisplayName=.*/MouseOverToSeeDisplayName=${MOUSE_OVER_DISPLAY_NAME:-false}/" "$INI_FILE"
     sed -i "s/^DisplayUserName=.*/DisplayUserName=${DISPLAY_USER_NAME:-false}/" "$INI_FILE"
     sed -i "s/^ShowFirstAndLastName=.*/ShowFirstAndLastName=${SHOW_FIRST_LAST_NAME:-true}/" "$INI_FILE"
@@ -80,15 +84,14 @@ fi
 
 if [ -f "$SANDBOX_FILE" ]; then
     LogAction "Aplicando patches no SandboxVars.lua"
-    # Patch para AllowMiniMap (dentro da tabela Map no arquivo Lua)
     sed -i "s/AllowMiniMap = .*/AllowMiniMap = ${ALLOW_MINIMAP:-true},/" "$SANDBOX_FILE"
 fi
 
 # --- 6. Desligamento Gracioso (RCON Save & Quit) ---
 term_handler() {
     LogWarn "Sinal de interrupção recebido! Executando shutdown gracioso..."
-    rcon-cli -a 127.0.0.1:${RCON_PORT:-27015} -p "$RCON_PASSWORD" "save"
-    rcon-cli -a 127.0.0.1:${RCON_PORT:-27015} -p "$RCON_PASSWORD" "quit"
+    rcon-cli -a 127.0.0.1:${RCON_PORT} -p "$RCON_PASSWORD" "save"
+    rcon-cli -a 127.0.0.1:${RCON_PORT} -p "$RCON_PASSWORD" "quit"
     sleep 10
     LogSuccess "Servidor desligado com sucesso."
     exit 0
