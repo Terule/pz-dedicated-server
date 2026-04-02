@@ -42,7 +42,7 @@ if [ -z "${ADMIN_PASSWORD}" ] || [ "${ADMIN_PASSWORD}" == "admin" ] || [ "${ADMI
     LogWarn "SECURITY WARNING: ADMIN_PASSWORD is weak or not defined in Coolify!"
 fi
 
-# --- 3. SteamCMD Update Logic with Retry (10 attempts) and Save Protection ---
+# --- 3. SteamCMD Update Logic with Persistent Retry and Save Protection ---
 if [ "$SERVER_BRANCH" == "outdatedunstable" ]; then
     LogWarn "!!! OUTDATEDUNSTABLE (42.15) DETECTED !!!"
     LogWarn "Automatic updates disabled to prevent B42.16+ corruption."
@@ -59,35 +59,20 @@ if [ "$UPDATE_ON_START" = "true" ] || [ ! -f "/project-zomboid/ProjectZomboid64"
         cp /home/steam/server/scripts/install.scmd /tmp/run.scmd
     fi
 
-    # Retry logic set to 10 attempts
-    MAX_RETRIES=10
+    # Persistent retry logic to ensure server version matches client requirements
     RETRY_COUNT=0
-    UPDATE_SUCCESS=false
-
-    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    while true; do
         # Use su without '-' to preserve environment variables, but use -s /bin/bash for consistency
         if su steam -s /bin/bash -c "${STEAMCMD_PATH:-/usr/bin/steamcmd} +runscript /tmp/run.scmd"; then
-            UPDATE_SUCCESS=true
             LogSuccess "Game update successful!"
             break
         else
             RETRY_COUNT=$((RETRY_COUNT + 1))
-            LogWarn "Update failed with state error (possibly 0x6). Retry attempt $RETRY_COUNT of $MAX_RETRIES..."
-            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                # Sleep a bit longer on each failure to allow Steam servers to recover
-                sleep $(( 5 * RETRY_COUNT ))
-            fi
+            LogWarn "Update failed (Attempt $RETRY_COUNT). Retrying in 15 seconds to ensure version parity..."
+            # Sleep to avoid spamming Steam servers
+            sleep 15
         fi
     done
-
-    if [ "$UPDATE_SUCCESS" = false ]; then
-        LogError "SteamCMD failed after $MAX_RETRIES attempts. Check your internet connection or Steam servers."
-        # If critical files are missing, we cannot continue
-        if [ ! -f "/project-zomboid/ProjectZomboid64" ]; then
-            LogError "Critical files missing. Exiting."
-            exit 1
-        fi
-    fi
 fi
 
 # --- 4. Memory Management (JSON Patch) ---
