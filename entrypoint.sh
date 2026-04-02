@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# --- Log Color Definitions ---
+# --- Definições de Cores para Logs ---
 export RESET='\033[0m'
 export RedBold='\033[1;31m'
 export GreenBold='\033[1;32m'
@@ -12,36 +12,36 @@ LogSuccess() { printf "${GreenBold}%s${RESET}\n" "$1"; }
 LogWarn() { printf "${YellowBold}%s${RESET}\n" "$1"; }
 LogError() { printf "${RedBold}%s${RESET}\n" "$1"; }
 
-# --- Compose Port Sync (Coolify Context) ---
-# Captures environment ports defined in Docker Compose
+# --- Sincronização de Portas do Compose (Contexto Coolify) ---
+# Captura as portas do ambiente definidas no Docker Compose
 INTERNAL_UDP_MAIN=${PORT_UDP_MAIN:-16261}
 INTERNAL_UDP_DIRECT=${PORT_UDP_DIRECT:-16262}
 INTERNAL_TCP_RCON=${PORT_TCP_RCON:-27015}
 
-# --- Project Branding Display ---
+# --- Exibição do Branding do Projeto ---
 if [ -f "/home/steam/server/branding" ]; then
     cat /home/steam/server/branding
-    # Added a newline \n at the beginning as requested
+    # Adicionada quebra de linha \n no início conforme solicitado anteriormente
     printf "\n${CyanBold}Developed by Terule | IG: @aguiar_fael | GitHub: https://github.com/Terule${RESET}\n\n"
 fi
 
-# --- 1. User ID Mapping (PUID/PGID) ---
+# --- 1. Mapeamento de ID de Usuário (PUID/PGID) ---
 if [ -n "${PUID}" ] && [ -n "${PGID}" ]; then
     LogAction "Syncing container permissions with host (PUID:$PUID PGID:$PGID)"
     groupmod -o -g "$PGID" steam
     usermod -o -u "$PUID" steam
 fi
 
-# Ensure folders exist and belong to steam user before any operation
+# Garante que as pastas existam e pertençam ao usuário steam antes de qualquer operação
 mkdir -p /home/steam/.steam/sdk64 /home/steam/.steam/root "$CONFIG_DIR/Server" "$GAME_DIR"
 chown -R steam:steam /home/steam/ /project-zomboid /project-zomboid-config
 
-# --- 2. Admin Security Check ---
+# --- 2. Verificação de Segurança do Admin ---
 if [ -z "${ADMIN_PASSWORD}" ] || [ "${ADMIN_PASSWORD}" == "admin" ] || [ "${ADMIN_PASSWORD}" == "CHANGEME" ]; then
     LogWarn "SECURITY WARNING: ADMIN_PASSWORD is weak or not defined in Coolify!"
 fi
 
-# --- 3. SteamCMD Update Logic & Save Protection ---
+# --- 3. Lógica de Atualização SteamCMD com Retry (10 tentativas) e Proteção de Save ---
 if [ "$SERVER_BRANCH" == "outdatedunstable" ]; then
     LogWarn "!!! OUTDATEDUNSTABLE (42.15) DETECTED !!!"
     LogWarn "Automatic updates disabled to prevent B42.16+ corruption."
@@ -51,28 +51,56 @@ fi
 if [ "$UPDATE_ON_START" = "true" ] || [ ! -f "/project-zomboid/ProjectZomboid64" ]; then
     LogAction "Updating game files (Branch: ${SERVER_BRANCH:-Stable})..."
     
+    # Pré-gera o script de instalação
     if [ -n "${SERVER_BRANCH}" ]; then
         envsubst < /home/steam/server/scripts/install_version.scmd > /tmp/run.scmd
     else
         cp /home/steam/server/scripts/install.scmd /tmp/run.scmd
     fi
-    su steam -c "${STEAMCMD_PATH:-/usr/bin/steamcmd} +runscript /tmp/run.scmd"
+
+    # Lógica de Retry aumentada para 10 tentativas conforme solicitado
+    MAX_RETRIES=10
+    RETRY_COUNT=0
+    UPDATE_SUCCESS=false
+
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        if su steam -c "${STEAMCMD_PATH:-/usr/bin/steamcmd} +runscript /tmp/run.scmd"; then
+            UPDATE_SUCCESS=true
+            LogSuccess "Game update successful!"
+            break
+        else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            LogWarn "Update failed. Retry attempt $RETRY_COUNT of $MAX_RETRIES..."
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                sleep 5
+            fi
+        fi
+    done
+
+    if [ "$UPDATE_SUCCESS" = false ]; then
+        LogError "SteamCMD failed after $MAX_RETRIES attempts. Check your internet connection or Steam servers."
+        # Se os arquivos críticos estiverem faltando, não podemos continuar
+        if [ ! -f "/project-zomboid/ProjectZomboid64" ]; then
+            LogError "Critical files missing. Exiting."
+            exit 1
+        fi
+    fi
 fi
 
-# --- 4. Memory Management (JSON Patch) ---
+# --- 4. Gestão de Memória (Patch no JSON) ---
 JSON_FILE="/project-zomboid/ProjectZomboid64.json"
 if [ -f "$JSON_FILE" ]; then
     LogAction "Applying memory patch to ${MEMORY_XMX_GB}GB"
     su steam -c "jq \".vmArgs |= map(if startswith(\\\"-Xmx\\\") then \\\"-Xmx${MEMORY_XMX_GB}G\\\" else . end)\" $JSON_FILE > $JSON_FILE.tmp && mv $JSON_FILE.tmp $JSON_FILE"
 fi
 
-# --- 5. Configuration Patching (.ini and SandboxVars.lua) ---
+# --- 5. Patch de Configurações (.ini e SandboxVars.lua) ---
 INI_FILE="$CONFIG_DIR/Server/${SERVER_NAME}.ini"
 SANDBOX_FILE="$CONFIG_DIR/Server/${SERVER_NAME}_SandboxVars.lua"
 
 if [ -f "$INI_FILE" ]; then
     LogAction "Applying .ini config patches (Coolify Variables)"
-    # Base Settings
+    # Configurações Base
     sed -i "s/^PVP=.*/PVP=${PVP:-false}/" "$INI_FILE"
     sed -i "s/^MaxPlayers=.*/MaxPlayers=${MAX_PLAYERS:-10}/" "$INI_FILE"
     sed -i "s/^RCONPassword=.*/RCONPassword=${RCON_PASSWORD}/" "$INI_FILE"
@@ -83,7 +111,7 @@ if [ -f "$INI_FILE" ]; then
     sed -i "s/^DefaultPort=.*/DefaultPort=${INTERNAL_UDP_MAIN}/" "$INI_FILE"
     sed -i "s/^UDPPort=.*/UDPPort=${INTERNAL_UDP_DIRECT}/" "$INI_FILE"
     
-    # Visual and Identification Settings
+    # Configurações de Visualização e Identificação
     sed -i "s/^MouseOverToSeeDisplayName=.*/MouseOverToSeeDisplayName=${MOUSE_OVER_DISPLAY_NAME:-false}/" "$INI_FILE"
     sed -i "s/^DisplayUserName=.*/DisplayUserName=${DISPLAY_USER_NAME:-false}/" "$INI_FILE"
     sed -i "s/^ShowFirstAndLastName=.*/ShowFirstAndLastName=${SHOW_FIRST_LAST_NAME:-true}/" "$INI_FILE"
@@ -96,7 +124,7 @@ if [ -f "$SANDBOX_FILE" ]; then
     sed -i "s/AllowMiniMap = .*/AllowMiniMap = ${ALLOW_MINIMAP:-true},/" "$SANDBOX_FILE"
 fi
 
-# --- 6. Graceful Shutdown (RCON Save & Quit) ---
+# --- 6. Desligamento Gracioso (RCON Save & Quit) ---
 term_handler() {
     LogWarn "Stop signal received! Executing graceful shutdown via RCON..."
     rcon-cli -a 127.0.0.1:${INTERNAL_TCP_RCON} -p "$RCON_PASSWORD" "save"
@@ -106,19 +134,19 @@ term_handler() {
 }
 trap 'term_handler' SIGTERM
 
-# --- 7. Server Execution ---
+# --- 7. Execução do Servidor ---
 LogSuccess "Starting Project Zomboid Dedicated Server!"
 
-# Prepare environment for the game
+# Prepara o ambiente para o jogo (LD_LIBRARY_PATH é crítico para libsteam_api.so)
 export LD_LIBRARY_PATH="$GAME_DIR/linux64:$GAME_DIR:$LD_LIBRARY_PATH"
 
-# Choose the best entry point: start-server.sh is preferred as it sets up its own classpath
+# Escolhe o melhor ponto de entrada: start-server.sh é preferível pois configura o classpath Java corretamente
 EXEC_BIN="./ProjectZomboid64"
 if [ -f "$GAME_DIR/start-server.sh" ]; then
     EXEC_BIN="./start-server.sh"
 fi
 
-# Run as steam user, using single quotes for variables to prevent shell injection/breaking
+# Executa como usuário steam, entrando no diretório do jogo para garantir que o classpath seja resolvido
 su steam -s /bin/bash -c "cd $GAME_DIR && export LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH\" && $EXEC_BIN -batchmode \
     -cachedir='$CONFIG_DIR' \
     -adminusername '$ADMIN_USERNAME' \
